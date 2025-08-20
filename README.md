@@ -1,11 +1,7 @@
 # YouTube Downloader Flask API v2.0
 
 A powerful, feature-rich YouTube video downloader built with Flask, providing both REST API endpoints and web interface for downloading YouTube videos with advanced features like queue management, scheduling, and compression.
-<div align="center">
-  <img src="assets/logo.png" alt="YouTube 4K Downloader API" width="200"/>
-  <h1>YouTube 4K Downloader API</h1>
-  <p>Professional high-resolution YouTube video downloader with REST API</p>
-</div>
+
 ## 🚀 Features
 
 ### Core Functionality
