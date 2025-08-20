@@ -38,7 +38,7 @@ A powerful, feature-rich YouTube video downloader built with Flask, providing bo
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/srikanth-thirumani/youtube-premium-downloader.git
-   cd youtube-premium-downloader-api
+   cd youtube-premium-downloader
    ```
 
 2. **Install Python dependencies:**
