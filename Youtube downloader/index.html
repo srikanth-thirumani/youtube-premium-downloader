@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0f0f0f;
+            color: #ffffff;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #272727;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #606060;
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #404040;
+            border-top: 2px solid #ff0000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 50;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #00d562;
+        }
+        
+        .notification.error {
+            background-color: #ff4444;
+        }
+
+        /* YouTube-style video item */
+        .video-item {
+            display: flex;
+            margin-bottom: 16px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .video-item:hover {
+            background-color: #1a1a1a;
+        }
+
+        .video-thumbnail-container {
+            position: relative;
+            width: 246px;
+            height: 138px;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin-right: 16px;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .duration-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .video-details {
+            flex: 1;
+            padding-top: 4px;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 400;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            color: #ffffff;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .video-metadata {
+            font-size: 14px;
+            color: #aaaaaa;
+            margin-bottom: 4px;
+        }
+
+        .video-stats {
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: background-color 0.2s ease;
+        }
+
+        .sidebar-item:hover {
+            background-color: #272727;
+        }
+
+        .sidebar-item.active {
+            background-color: #272727;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 24px;
+        }
+
+        /* Download form styling */
+        .form-input {
+            background-color: #121212;
+            border: 1px solid #303030;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #065fd4;
+            box-shadow: 0 0 0 1px #065fd4;
+        }
+
+        .btn-primary {
+            background-color: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 18px;
+            padding: 10px 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #aa0000;
+        }
+
+        .btn-secondary {
+            background-color: #272727;
+            color: white;
+            border: 1px solid #404040;
+            border-radius: 18px;
+            padding: 10px 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #404040;
+        }
+
+        .content-section {
+            background-color: #0f0f0f;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: #ffffff;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .video-item {
+                flex-direction: column;
+            }
+
+            .video-thumbnail-container {
+                width: 100%;
+                height: 200px;
+                margin-right: 0;
+                margin-bottom: 12px;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <header class="bg-black border-b border-gray-800 sticky top-0 z-50">
+        <div class="flex items-center justify-between px-4 py-2">
+            <div class="flex items-center">
+                <button id="sidebar-toggle" class="p-2 rounded-full hover:bg-gray-800 mr-4 md:hidden">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </button>
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-red-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span class="text-xl font-normal">YouTube Downloader</span>
+                </div>
+            </div>
+
+            <div class="flex-1 max-w-2xl mx-8">
+                <div class="flex">
+                    <div class="flex-1 relative">
+                        <input type="text" id="search-query" placeholder="Search" 
+                               class="w-full bg-black border border-gray-600 rounded-l-full px-4 py-2 text-white focus:outline-none focus:border-blue-500" />
+                    </div>
+                    <button id="search-button" onclick="searchYouTube()"
+                            class="bg-gray-800 border border-l-0 border-gray-600 rounded-r-full px-6 py-2 hover:bg-gray-700">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button class="p-2 rounded-full hover:bg-gray-800 hidden sm:block">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14,6V4H10V6H5V8H6.5V19A2,2 0 0,0 8.5,21H15.5A2,2 0 0,0 17.5,19V8H19V6H14M8.5,9H10V18H8.5V9M14,9H15.5V18H14V9Z" />
+                    </svg>
+                </button>
+                <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-sm font-bold">
+                    YD
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <div id="sidebar" class="sidebar bg-black w-60 fixed inset-y-0 left-0 z-40 pt-16 md:pt-0 md:relative">
+            <div class="p-3 pt-4">
+                <div class="space-y-1">
+                    <a href="#" class="sidebar-item active" onclick="showTab('search', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                        Search
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('download', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                        </svg>
+                        Download
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('queue', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M15,6H3V8H15V6M15,10H3V12H15V10M3,16H11V14H3V16M17,6V14.18C16.69,14.07 16.35,14 16,14A3,3 0 0,0 13,17A3,3 0 0,0 16,20A3,3 0 0,0 19,17V8H22V6H17Z"/>
+                        </svg>
+                        Queue
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('history', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3"/>
+                        </svg>
+                        History
+                    </a>
+                </div>
+
+                <hr class="my-4 border-gray-700">
+
+                <div class="space-y-1">
+                    <a href="#" class="sidebar-item" onclick="showTab('playlist', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17,3L22.25,7.5L17,12L22.25,16.5L17,21V18H14.26L11.44,15.18L13.56,13.06L15.5,15H17V12L17,9H15.5L6.5,18H2V15H5.26L14.26,6H17V3M2,6V9H11L9,7H2Z"/>
+                        </svg>
+                        Playlist
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('schedule', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19M5,6V5H19V6H5Z"/>
+                        </svg>
+                        Schedule
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('stats', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M22,21H2V3H4V19H6V17H10V19H12V16H16V19H18V17H22V21Z"/>
+                        </svg>
+                        Statistics
+                    </a>
+                    <a href="#" class="sidebar-item" onclick="showTab('settings', event)">
+                        <svg class="sidebar-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+                        </svg>
+                        Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 md:ml-60 p-6">
+            <div id="search-tab" class="tab-content active">
+                <div id="search-results-container">
+                    <div class="flex items-center justify-center py-20">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                            <p class="text-gray-400 text-lg">Search for videos to download</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="download-tab" class="tab-content">
+                <div class="content-section max-w-4xl">
+                    <h2 class="section-title">Download Video</h2>
+                    
+                    <div id="selected-video-info" class="mb-6 p-4 bg-gray-900 rounded-lg" style="display:none;">
+                        <div class="flex">
+                            <img id="selected-video-thumbnail" src="" alt="Video Thumbnail" class="w-40 h-22 rounded-lg object-cover mr-4">
+                            <div class="flex-1">
+                                <h3 id="selected-video-title" class="text-lg font-medium mb-2"></h3>
+                                <p id="selected-video-uploader" class="text-sm text-gray-400 mb-1"></p>
+                                <div class="text-xs text-gray-500 space-x-4">
+                                    <span id="selected-video-duration"></span>
+                                    <span id="selected-video-views"></span>
+                                    <span id="selected-video-date"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="download-form" onsubmit="handleDownload(event)" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">YouTube URL</label>
+                            <input type="url" id="video-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." required>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Format</label>
+                                <select id="format-type" class="form-input">
+                                    <option value="mp4">MP4 (Video)</option>
+                                    <option value="mp3">MP3 (Audio)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Quality</label>
+                                <select id="quality" class="form-input">
+                                    <option value="best">Best Available</option>
+                                    <option value="1080">1080p</option>
+                                    <option value="720">720p</option>
+                                    <option value="480">480p</option>
+                                    <option value="360">360p</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Custom Filename (Optional)</label>
+                            <input type="text" id="custom-name" class="form-input" placeholder="Leave empty for auto-generated name">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Tags (Optional)</label>
+                            <input type="text" id="tags" class="form-input" placeholder="music, tutorial, funny (comma-separated)">
+                        </div>
+                        
+                        <div class="flex gap-4">
+                            <button type="submit" class="btn-primary">
+                                Download Now
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="addToQueue()">
+                                Add to Queue
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="download-status" class="mt-6 p-4 bg-gray-900 rounded-lg" style="display: none;">
+                        <h3 class="text-lg font-medium mb-2">Download Status</h3>
+                        <div id="status-text" class="text-sm text-gray-400 mb-2">Preparing download...</div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div id="progress-fill" class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                        </div>
+                        <div id="progress-text" class="text-xs text-gray-500">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="queue-tab" class="tab-content">
+                <div class="content-section">
+                    <h2 class="section-title">Download Queue</h2>
+                    <div class="flex gap-4 mb-6">
+                        <button class="btn-primary" onclick="processQueue()">Process Pending</button>
+                        <button class="btn-secondary" onclick="loadQueue()">Refresh</button>
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full" onclick="showConfirmation('Clear completed items from queue?', () => clearQueue('completed'))">Clear Completed</button>
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full" onclick="showConfirmation('Clear all items from queue?', () => clearQueue('all'))">Clear All</button>
+                    </div>
+                    <div id="queue-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div class="content-section">
+                    <h2 class="section-title">Download History</h2>
+                    <div class="mb-6">
+                        <div class="flex gap-4">
+                            <input type="text" id="search-history" class="form-input flex-1" placeholder="Search by title, uploader or tags...">
+                            <button class="btn-primary" onclick="searchHistory()">Search</button>
+                            <button class="btn-secondary" onclick="loadHistory()">Show All</button>
+                        </div>
+                    </div>
+                    <div id="history-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <div id="stats-tab" class="tab-content">
+                <div class="content-section">
+                    <h2 class="section-title">Statistics</h2>
+                    <button class="btn-secondary mb-6" onclick="loadStats()">Refresh Stats</button>
+                    <div id="stats-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+                </div>
+            </div>
+
+            <div id="playlist-tab" class="tab-content">
+                <div class="content-section max-w-2xl">
+                    <h2 class="section-title">Download Playlist</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">YouTube Playlist URL</label>
+                            <input type="url" id="playlist-url" class="form-input" placeholder="https://www.youtube.com/playlist?list=..." required>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Format</label>
+                                <select id="playlist-format" class="form-input">
+                                    <option value="mp4">MP4 (Video)</option>
+                                    <option value="mp3">MP3 (Audio)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Quality</label>
+                                <select id="playlist-quality" class="form-input">
+                                    <option value="best">Best Available</option>
+                                    <option value="1080">1080p</option>
+                                    <option value="720">720p</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Max Videos</label>
+                                <input type="number" id="max-videos" class="form-input" value="50" min="1" max="500">
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="downloadPlaylist()">Start Playlist Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="schedule-tab" class="tab-content">
+                <div class="content-section max-w-2xl">
+                    <h2 class="section-title">Schedule Download</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">YouTube URL</label>
+                            <input type="url" id="schedule-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Scheduled Date & Time</label>
+                            <input type="datetime-local" id="schedule-time" class="form-input" required>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Format</label>
+                                <select id="schedule-format" class="form-input">
+                                    <option value="mp4">MP4 (Video)</option>
+                                    <option value="mp3">MP3 (Audio)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Quality</label>
+                                <select id="schedule-quality" class="form-input">
+                                    <option value="best">Best Available</option>
+                                    <option value="1080">1080p</option>
+                                    <option value="720">720p</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="scheduleDownload()">Schedule Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="content-section">
+                    <h2 class="section-title">Settings</h2>
+                    <div class="space-y-8">
+                        <div>
+                            <h3 class="text-lg font-medium mb-4">Default Download Settings</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Default Quality</label>
+                                    <select id="default-quality" class="form-input">
+                                        <option value="best">Best Available</option>
+                                        <option value="1080">1080p</option>
+                                        <option value="720">720p</option>
+                                        <option value="480">480p</option>
+                                        <option value="360">360p</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Default Format</label>
+                                    <select id="default-format" class="form-input">
+                                        <option value="mp4">MP4</option>
+                                        <option value="mp3">MP3</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-medium mb-4">File Management</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="auto-organize" class="w-4 h-4 text-red-600 bg-gray-800 border-gray-600 rounded focus:ring-red-500">
+                                    <label for="auto-organize" class="ml-2 text-sm">Auto-organize files by uploader</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="download-thumbnails" class="w-4 h-4 text-red-600 bg-gray-800 border-gray-600 rounded focus:ring-red-500">
+                                    <label for="download-thumbnails" class="ml-2 text-sm">Download thumbnails</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="download-subtitles" class="w-4 h-4 text-red-600 bg-gray-800 border-gray-600 rounded focus:ring-red-500">
+                                    <label for="download-subtitles" class="ml-2 text-sm">Download subtitles</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium mb-4">File Naming</h3>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Custom Naming Pattern</label>
+                                <input type="text" id="naming-pattern" class="form-input" placeholder="%(title)s.%(ext)s">
+                                <p class="mt-1 text-xs text-gray-400">
+                                    Available variables: %(title)s, %(uploader)s, %(upload_date)s, %(duration)s
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-medium mb-4">Limits</h3>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Max File Size (MB)</label>
+                                <input type="number" id="max-file-size" class="form-input" min="1" max="10000">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+                            <button class="btn-secondary" onclick="loadSettings()">Load Current Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-gray-900 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4 border border-gray-700">
+            <h3 id="modal-title" class="text-lg font-medium text-white mb-2"></h3>
+            <p id="modal-message" class="text-sm text-gray-300 mb-4"></p>
+            <div id="modal-buttons" class="flex justify-end space-x-2"></div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        let currentTaskId = null;
+        let monitoringInterval = null;
+
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const searchInput = document.getElementById('search-query');
+
+        // Toggle sidebar on mobile
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // Search on Enter
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchYouTube();
+            }
+        });
+        
+        document.getElementById('search-history')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchHistory();
+            }
+        });
+
+        // Tab management
+        function showTab(tabName, event) {
+            if (event) event.preventDefault();
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all sidebar items
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected tab
+            const activeTab = document.getElementById(`${tabName}-tab`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+
+            // Activate sidebar item
+            const activeLink = document.querySelector(`.sidebar-item[onclick*="showTab('${tabName}')"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+
+            // Load data for specific tabs
+            if (tabName === 'queue') loadQueue();
+            if (tabName === 'history') loadHistory();
+            if (tabName === 'stats') loadStats();
+            if (tabName === 'settings') loadSettings();
+
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 768) {
+                sidebar.classList.remove('open');
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Confirmation modal
+        function showConfirmation(message, onConfirm) {
+            const modalContainer = document.getElementById('modal-container');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalButtons = document.getElementById('modal-buttons');
+            
+            modalTitle.textContent = "Confirmation";
+            modalMessage.textContent = message;
+            modalButtons.innerHTML = `
+                <button class="px-4 py-2 text-sm rounded-lg text-gray-300 bg-gray-700 hover:bg-gray-600" onclick="closeModal()">Cancel</button>
+                <button class="px-4 py-2 text-sm rounded-lg text-white bg-red-600 hover:bg-red-700 ml-2" onclick="handleConfirm()">Confirm</button>
+            `;
+            
+            window.confirmCallback = onConfirm;
+            modalContainer.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+            window.confirmCallback = null;
+        }
+
+        function handleConfirm() {
+            if (window.confirmCallback) {
+                window.confirmCallback();
+            }
+            closeModal();
+        }
+
+        // Search YouTube
+        async function searchYouTube() {
+            const query = document.getElementById('search-query').value;
+            
+            if (!query) {
+                showNotification('Please enter a search query', 'error');
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('search-results-container');
+            resultsContainer.innerHTML = `
+                <div class="flex items-center justify-center py-20">
+                    <div class="text-center">
+                        <div class="loading mb-4"></div>
+                        <p class="text-gray-400">Searching for videos...</p>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        max_results: 20,
+                        duration_filter: '',
+                        sort_by: 'relevance'
+                    })
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.videos) {
+                    displaySearchResults(result.videos);
+                } else {
+                    resultsContainer.innerHTML = '<div class="text-center py-20 text-gray-400">No results found</div>';
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = '<div class="text-center py-20 text-red-400">Search failed due to network error.</div>';
+                showNotification('Search failed: ' + error.message, 'error');
+            }
+        }
+
+        // Display search results in YouTube-style vertical layout
+        function displaySearchResults(videos) {
+            const resultsContainer = document.getElementById('search-results-container');
+            
+            if (!videos || videos.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center py-20 text-gray-400">No videos found</div>';
+                return;
+            }
+            
+            let html = '<div class="space-y-0">';
+            videos.forEach((video) => {
+                const duration = video.duration_str || 'LIVE';
+                const views = video.views_str || 'N/A';
+                const uploadDate = video.upload_date ? formatUploadDate(video.upload_date) : 'Unknown';
+                const thumbnailUrl = video.thumbnail || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="246" height="138" viewBox="0 0 246 138"><rect width="246" height="138" fill="#222"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#666">No Image</text></svg>';
+
+                html += `
+                    <div class="video-item" onclick="selectVideo('${video.url}')">
+                        <div class="video-thumbnail-container">
+                            <img src="${thumbnailUrl}" alt="Video Thumbnail" class="video-thumbnail">
+                            <span class="duration-badge">${duration}</span>
+                        </div>
+                        <div class="video-details">
+                            <div class="video-title">${escapeHtml(video.title || 'Unknown Title')}</div>
+                            <div class="video-metadata">${escapeHtml(video.uploader || 'Unknown')}</div>
+                            <div class="video-stats">${views} views • ${uploadDate}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            resultsContainer.innerHTML = html;
+        }
+
+        // Select video for download
+        async function selectVideo(url) {
+            showTab('download');
+            
+            const infoContainer = document.getElementById('selected-video-info');
+            const titleEl = document.getElementById('selected-video-title');
+            const uploaderEl = document.getElementById('selected-video-uploader');
+            const durationEl = document.getElementById('selected-video-duration');
+            const viewsEl = document.getElementById('selected-video-views');
+            const dateEl = document.getElementById('selected-video-date');
+            const thumbnailEl = document.getElementById('selected-video-thumbnail');
+            
+            // Show loading state
+            infoContainer.style.display = 'block';
+            titleEl.textContent = 'Loading video information...';
+            uploaderEl.textContent = '';
+            durationEl.textContent = '';
+            viewsEl.textContent = '';
+            dateEl.textContent = '';
+            thumbnailEl.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="22" viewBox="0 0 40 22"><rect width="40" height="22" fill="#333"/></svg>';
+
+            document.getElementById('video-url').value = url;
+            
+            try {
+                const response = await fetch(`${API_BASE}/video-info?url=${encodeURIComponent(url)}`);
+                const info = await response.json();
+                
+                if (response.ok) {
+                    titleEl.textContent = info.title || 'Unknown Title';
+                    uploaderEl.textContent = info.uploader || 'Unknown Uploader';
+                    durationEl.textContent = formatDuration(info.duration);
+                    viewsEl.textContent = info.view_count?.toLocaleString() || 'N/A';
+                    dateEl.textContent = formatUploadDate(info.upload_date);
+                    
+                    if (info.thumbnail) {
+                        thumbnailEl.src = info.thumbnail;
+                    }
+                    
+                    showNotification('Video info loaded successfully');
+                } else {
+                    infoContainer.style.display = 'none';
+                    showNotification(info.error || 'Failed to get video info', 'error');
+                }
+            } catch (error) {
+                infoContainer.style.display = 'none';
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Download functionality
+        async function handleDownload(e) {
+            e.preventDefault();
+            
+            const formData = {
+                url: document.getElementById('video-url').value,
+                format_type: document.getElementById('format-type').value,
+                quality: document.getElementById('quality').value,
+                custom_name: document.getElementById('custom-name').value || null,
+                tags: document.getElementById('tags').value.split(',').map(t => t.trim()).filter(t => t)
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Download started successfully!');
+                    document.getElementById('download-status').style.display = 'block';
+                    monitorDownload(result.task_id);
+                } else {
+                    showNotification(result.error || 'Download failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Monitor download progress
+        async function monitorDownload(taskId) {
+            if (monitoringInterval) clearInterval(monitoringInterval);
+            currentTaskId = taskId;
+
+            const statusPanel = document.getElementById('download-status');
+            const statusText = document.getElementById('status-text');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+
+            statusPanel.style.display = 'block';
+            
+            monitoringInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/download-status/${currentTaskId}`);
+                    const status = await response.json();
+                    
+                    if (status.status === 'not_found') {
+                        clearInterval(monitoringInterval);
+                        showNotification('Download task not found', 'error');
+                        statusPanel.style.display = 'none';
+                        return;
+                    }
+                    
+                    statusText.textContent = `Status: ${status.status} ${status.current_video ? `(${status.current_video})` : ''}`;
+
+                    if (status.progress !== undefined) {
+                        progressFill.style.width = `${status.progress}%`;
+                        progressText.textContent = `${status.progress}%`;
+                    }
+                    
+                    if (status.status === 'completed' || status.status === 'failed') {
+                        clearInterval(monitoringInterval);
+                        showNotification(`Download ${status.status}!`, status.status === 'completed' ? 'success' : 'error');
+                        if (status.error) console.error(status.error);
+                        setTimeout(() => {
+                            statusPanel.style.display = 'none';
+                        }, 3000);
+                    }
+                } catch (error) {
+                    clearInterval(monitoringInterval);
+                    console.error('Error checking status:', error);
+                    showNotification('Error monitoring download status', 'error');
+                }
+            }, 1000);
+        }
+
+        // Add to queue
+        async function addToQueue() {
+            const formData = {
+                url: document.getElementById('video-url').value,
+                format_type: document.getElementById('format-type').value,
+                quality: document.getElementById('quality').value,
+                custom_name: document.getElementById('custom-name').value || null,
+                tags: document.getElementById('tags').value.split(',').map(t => t.trim()).filter(t => t)
+            };
+            
+            if (!formData.url) {
+                showNotification('Please enter a URL first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/queue/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Added to queue successfully!');
+                    document.getElementById('download-form').reset();
+                    loadQueue();
+                } else {
+                    showNotification(result.error || 'Failed to add to queue', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Queue management
+        async function loadQueue() {
+            try {
+                const response = await fetch(`${API_BASE}/queue`);
+                const result = await response.json();
+                displayQueue(result.queue || []);
+            } catch (error) {
+                showNotification('Failed to load queue', 'error');
+            }
+        }
+
+        function displayQueue(queue) {
+            const queueList = document.getElementById('queue-list');
+            
+            if (!queue || queue.length === 0) {
+                queueList.innerHTML = '<div class="text-center py-8 text-gray-400">Queue is empty</div>';
+                return;
+            }
+            
+            let html = '';
+            queue.forEach((item, index) => {
+                const statusClass = item.status === 'completed' ? 'bg-green-900 text-green-300' :
+                                    item.status === 'failed' ? 'bg-red-900 text-red-300' :
+                                    'bg-yellow-900 text-yellow-300';
+
+                html += `
+                    <div class="p-4 bg-gray-900 rounded-lg flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-white truncate">${escapeHtml(item.video_info?.title || item.url)}</p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                Format: ${item.format_type} | Quality: ${item.quality}
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-4">
+                            <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${item.status || 'pending'}</span>
+                            <button class="text-gray-500 hover:text-red-400" onclick="showConfirmation('Remove this item from queue?', () => removeFromQueue(${index}))">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            queueList.innerHTML = html;
+        }
+
+        async function processQueue() {
+            try {
+                const response = await fetch(`${API_BASE}/queue/process`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Queue processing started!');
+                    monitorDownload(result.task_id);
+                    setTimeout(loadQueue, 2000);
+                } else {
+                    showNotification(result.error || 'Failed to process queue', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function clearQueue(type) {
+            try {
+                const response = await fetch(`${API_BASE}/queue/clear?type=${type}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification(`${result.cleared_count} items cleared from queue`);
+                    loadQueue();
+                } else {
+                    showNotification(result.error || 'Failed to clear queue', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function removeFromQueue(index) {
+            try {
+                const response = await fetch(`${API_BASE}/queue/item/${index}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Item removed from queue');
+                    loadQueue();
+                } else {
+                    showNotification(result.error || 'Failed to remove item', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // History management
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/downloads?per_page=50`);
+                const result = await response.json();
+                displayHistory(result.downloads || []);
+            } catch (error) {
+                showNotification('Failed to load history', 'error');
+            }
+        }
+        
+        async function searchHistory() {
+            const query = document.getElementById('search-history').value;
+            if (!query) {
+                loadHistory();
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/downloads/search?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+                displayHistory(result.downloads || []);
+            } catch (error) {
+                showNotification('Search failed', 'error');
+            }
+        }
+
+        function displayHistory(downloads) {
+            const historyList = document.getElementById('history-list');
+            if (!downloads || downloads.length === 0) {
+                historyList.innerHTML = '<div class="text-center py-8 text-gray-400">No downloads found</div>';
+                return;
+            }
+            
+            let html = '';
+            downloads.forEach(download => {
+                const fileExists = download.file_exists ? '✅' : '❌';
+                const fileSize = download.file_size_mb ? `${download.file_size_mb.toFixed(2)} MB` : 'Unknown';
+                const downloadDate = new Date(download.download_date).toLocaleDateString();
+                
+                html += `
+                    <div class="p-4 bg-gray-900 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-white truncate">${escapeHtml(download.title || 'Unknown')}</p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                ${escapeHtml(download.uploader || 'Unknown')} • ${fileSize} • ${downloadDate} • ${download.format_type?.toUpperCase()} • ${fileExists} File
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2 mt-2 md:mt-0">
+                            ${download.file_exists ? `<a href="${API_BASE}/file/${download.video_id}" class="btn-secondary text-xs py-1 px-3" target="_blank">Download</a>` : ''}
+                            <button class="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-3 rounded-full" onclick="showConfirmation('Delete this download record?', () => deleteDownload('${download.video_id}'))">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            historyList.innerHTML = html;
+        }
+
+        async function deleteDownload(videoId) {
+            try {
+                const response = await fetch(`${API_BASE}/downloads/${videoId}?delete_file=true`, { method: 'DELETE' });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Download deleted successfully!');
+                    loadHistory();
+                } else {
+                    showNotification(result.error || 'Failed to delete download', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+                displayStats(stats);
+            } catch (error) {
+                showNotification('Failed to load statistics', 'error');
+            }
+        }
+
+        function displayStats(stats) {
+            const statsContent = document.getElementById('stats-content');
+            const html = `
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="text-3xl font-bold text-white mb-1">${stats.summary?.total_downloads || 0}</div>
+                    <div class="text-sm text-gray-400">Total Downloads</div>
+                </div>
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="text-3xl font-bold text-white mb-1">${stats.summary?.total_size_mb || 0}</div>
+                    <div class="text-sm text-gray-400">Total Size (MB)</div>
+                </div>
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="text-3xl font-bold text-white mb-1">${stats.summary?.recent_downloads || 0}</div>
+                    <div class="text-sm text-gray-400">Recent Downloads</div>
+                </div>
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="text-3xl font-bold text-white mb-1">${stats.summary?.queue_size || 0}</div>
+                    <div class="text-sm text-gray-400">Queue Size</div>
+                </div>
+            `;
+            statsContent.innerHTML = html;
+        }
+
+        // Settings management
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/config`);
+                const config = await response.json();
+                document.getElementById('default-quality').value = config.current_config?.default_quality || 'best';
+                document.getElementById('default-format').value = config.current_config?.default_format || 'mp4';
+                document.getElementById('auto-organize').checked = config.current_config?.auto_organize || false;
+                document.getElementById('download-thumbnails').checked = config.current_config?.download_thumbnails || false;
+                document.getElementById('download-subtitles').checked = config.current_config?.download_subtitles || false;
+                document.getElementById('naming-pattern').value = config.current_config?.custom_naming_pattern || '%(title)s.%(ext)s';
+                document.getElementById('max-file-size').value = config.current_config?.max_file_size_mb || 1000;
+            } catch (error) {
+                showNotification('Failed to load settings', 'error');
+            }
+        }
+
+        async function saveSettings() {
+            const config = {
+                default_quality: document.getElementById('default-quality').value,
+                default_format: document.getElementById('default-format').value,
+                auto_organize: document.getElementById('auto-organize').checked,
+                download_thumbnails: document.getElementById('download-thumbnails').checked,
+                download_subtitles: document.getElementById('download-subtitles').checked,
+                custom_naming_pattern: document.getElementById('naming-pattern').value,
+                max_file_size_mb: parseInt(document.getElementById('max-file-size').value)
+            };
+            try {
+                const response = await fetch(`${API_BASE}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Settings saved successfully!');
+                } else {
+                    showNotification(result.error || 'Failed to save settings', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        }
+        
+        // Playlist functionality
+        async function downloadPlaylist() {
+            const playlistUrl = document.getElementById('playlist-url').value;
+            const formatType = document.getElementById('playlist-format').value;
+            const quality = document.getElementById('playlist-quality').value;
+            const maxVideos = document.getElementById('max-videos').value;
+            
+            if (!playlistUrl) { 
+                showNotification('Please enter a playlist URL', 'error'); 
+                return; 
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/playlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url: playlistUrl, 
+                        format_type: formatType, 
+                        quality: quality, 
+                        max_videos: parseInt(maxVideos) 
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Playlist download started!');
+                    monitorDownload(result.task_id);
+                } else { 
+                    showNotification(result.error || 'Failed to start playlist download', 'error'); 
+                }
+            } catch (error) { 
+                showNotification('Network error: ' + error.message, 'error'); 
+            }
+        }
+        
+        // Schedule functionality
+        async function scheduleDownload() {
+            const url = document.getElementById('schedule-url').value;
+            const scheduleTime = document.getElementById('schedule-time').value;
+            const formatType = document.getElementById('schedule-format').value;
+            const quality = document.getElementById('schedule-quality').value;
+            
+            if (!url || !scheduleTime) { 
+                showNotification('Please fill all fields', 'error'); 
+                return; 
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url: url, 
+                        schedule_time: scheduleTime, 
+                        format_type: formatType, 
+                        quality: quality 
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Download scheduled successfully!');
+                    document.getElementById('schedule-url').value = '';
+                    document.getElementById('schedule-time').value = '';
+                    loadQueue();
+                } else { 
+                    showNotification(result.error || 'Failed to schedule download', 'error'); 
+                }
+            } catch (error) { 
+                showNotification('Network error: ' + error.message, 'error'); 
+            }
+        }
+
+        // Utility functions
+        function formatUploadDate(dateStr) {
+            if (dateStr && dateStr.length === 8) {
+                return `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+            }
+            return 'Unknown';
+        }
+        
+        function formatDuration(seconds) {
+            if (!seconds) return 'N/A';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+
+            let parts = [];
+            if (hours > 0) parts.push(`${hours}h`);
+            if (minutes > 0) parts.push(`${minutes}m`);
+            if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+            
+            return parts.length > 0 ? parts.join(' ') : '0s';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth < 768 && sidebar.classList.contains('open') && 
+                !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            
+            // Check API health
+            fetch(`${API_BASE}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'healthy') {
+                        showNotification('Connected to YouTube Downloader API');
+                    } else {
+                        showNotification('API is unhealthy: ' + data.error, 'error');
+                    }
+                })
+                .catch(() => {
+                    showNotification('Warning: Cannot connect to API. Make sure the Flask server is running.', 'error');
+                });
+        });
+    </script>
+</body>
+</html>

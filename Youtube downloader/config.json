@@ -1,0 +1,10 @@
+{
+  "default_quality": "1080",
+  "default_format": "mp4",
+  "auto_organize": true,
+  "download_subtitles": false,
+  "download_thumbnails": true,
+  "max_file_size_mb": 1000,
+  "custom_naming_pattern": "%(title)s.%(ext)s",
+  "preferred_audio_quality": "192"
+}
